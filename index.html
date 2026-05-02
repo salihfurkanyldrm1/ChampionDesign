@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>GS Pro Master v18 | Final Release</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@700&family=Roboto+Condensed:wght@700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --gs-kirmizi: #a90432;
+            --gs-sari: #fdb912;
+            --bg: #0a0a0a;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: white;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 380px;
+            background: #151515;
+            padding: 20px;
+            border-right: 1px solid #333;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        h2 {
+            color: var(--gs-sari);
+            text-align: center;
+            border-bottom: 2px solid var(--gs-kirmizi);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #666;
+            margin-top: 15px;
+            letter-spacing: 1px;
+        }
+
+        /* Stage */
+        .main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, #222 0%, #000 100%);
+            position: relative;
+        }
+
+        .view-label {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--gs-sari);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            border: 1px solid #444;
+            padding: 5px 20px;
+            border-radius: 50px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .canvas-area {
+            width: 600px;
+            height: 650px;
+            position: relative;
+        }
+
+        /* T-Shirt SVG */
+        svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6));
+        }
+
+        /* Nesneler */
+        .movable {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            display: inline-block;
+            z-index: 100;
+            padding: 5px;
+        }
+
+        .movable img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            pointer-events: none;
+        }
+
+        /* Gelişmiş Resizer */
+        .resizer {
+            width: 14px;
+            height: 14px;
+            background: var(--gs-sari);
+            position: absolute;
+            right: -7px;
+            bottom: -7px;
+            cursor: nwse-resize;
+            border-radius: 50%;
+            display: none;
+            border: 2px solid #000;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .movable:hover .resizer {
+            display: block;
+        }
+
+        .movable:hover {
+            outline: 1px dashed var(--gs-sari);
+        }
+
+        /* Arka Yüz Alanlar */
+        .back-static-container {
+            position: absolute;
+            width: 100%;
+            top: 110px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        #bName {
+            font-size: 40px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        #bNum {
+            font-size: 160px;
+            font-weight: bold;
+            line-height: 0.8;
+        }
+
+        /* UI Controls */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #252525;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: #333;
+        }
+
+        .active-view {
+            background: var(--gs-kirmizi) !important;
+            color: white;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .gallery img {
+            width: 100%;
+            height: 50px;
+            object-fit: contain;
+            background: #111;
+            cursor: grab;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+
+        .gallery img:hover {
+            transform: scale(1.1);
+            border: 1px solid var(--gs-sari);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .delete-hint {
+            font-size: 10px;
+            color: #ff4444;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>GS MASTER v18</h2>
+        <button id="viewBtn" class="btn active-view" onclick="switchView()">🔄 GÖRÜNÜM: ÖN YÜZ</button>
+
+        <h3>1. Tasarım Şablonu</h3>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+            <button class="btn" onclick="setPattern('duz')">Düz</button>
+            <button class="btn" onclick="setPattern('parcali')">Parçalı</button>
+            <button class="btn" onclick="setPattern('cizgili')">Çizgili</button>
+            <button class="btn" onclick="setPattern('damali')">Damalı</button>
+        </div>
+
+        <h3>2. Renk Ayarları</h3>
+        <div style="display:flex; gap:10px;">
+            <input type="color" id="c1" value="#a90432" style="flex:1; height:40px;" oninput="updateBase()">
+            <input type="color" id="c2" value="#fdb912" style="flex:1; height:40px;" oninput="updateBase()">
+        </div>
+
+        <h3>3. Amblem Kütüphanesi</h3>
+        <div class="gallery" id="stickerBox"></div>
+        <div class="delete-hint">💡 Silmek için nesneye SAĞ TIKLA</div>
+
+        <h3>4. Yazı Editörü</h3>
+        <input type="text" id="tIn" placeholder="İSİM YAZIN..." class="btn"
+            style="background:#000; border: 1px solid #333;" oninput="updateBackStatic()">
+        <div style="display:flex; gap:5px; margin-top:5px;">
+            <select id="tFont" class="btn" style="flex:2" onchange="updateBackStatic()">
+                <option value="'Bebas Neue'">Bebas Neue</option>
+                <option value="'Oswald'">Oswald</option>
+                <option value="'Roboto Condensed'">Roboto</option>
+            </select>
+            <input type="color" id="tColor" value="#ffffff" style="flex:1; height:45px;" oninput="updateTextProps()">
+        </div>
+        <div style="margin-top:10px;">
+            <label style="font-size:11px">ÖN YAZI BOYUTU:</label>
+            <input type="range" id="tSize" min="15" max="120" value="35"
+                style="width:100%; accent-color:var(--gs-sari);" oninput="updateTextProps()">
+        </div>
+        <button class="btn" onclick="addNewText()" style="background:#444; margin-top:10px;">➕ ÖN YÜZE EKLE</button>
+
+        <h3>5. Arka Yüz Detay</h3>
+        <input type="number" id="tNumIn" placeholder="NUMARA" class="btn" style="background:#000"
+            oninput="updateBackStatic()">
+    </div>
+
+    <div class="main-stage">
+        <div id="vLabel" class="view-label">ÖN YÜZ</div>
+
+        <div class="canvas-area" id="dropCanvas" ondragover="event.preventDefault()" ondrop="dropToCanvas(event)">
+            <svg viewBox="0 0 500 600" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <clipPath id="tClip">
+                        <path
+                            d="M150,70 L80,100 L50,200 L100,220 L120,200 L120,500 L380,500 L380,200 L400,220 L450,200 L420,100 L350,70 C330,50 170,50 150,70 Z" />
+                    </clipPath>
+                    <pattern id="pDamali" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                        <rect id="d1" width="50" height="50" />
+                        <rect id="d2" x="50" width="50" height="50" />
+                        <rect id="d3" y="50" width="50" height="50" />
+                        <rect id="d4" x="50" y="50" width="50" height="50" />
+                    </pattern>
+                    <pattern id="pCizgili" x="0" y="0" width="60" height="10" patternUnits="userSpaceOnUse">
+                        <rect id="cz1" width="30" height="600" />
+                        <rect id="cz2" x="30" width="30" height="600" />
+                    </pattern>
+                </defs>
+                <g clip-path="url(#tClip)">
+                    <rect id="svgBG" width="500" height="600" />
+                    <rect id="svgSplit" x="250" width="250" height="600" class="hidden" />
+                    <rect id="svgPattern" width="500" height="600" class="hidden" />
+                </g>
+                <path d="M160,75 C180,100 320,100 340,75 L340,65 C320,90 180,90 160,65 Z" fill="#111" />
+                <path
+                    d="M150,70 L80,100 L50,200 L100,220 L120,200 L120,500 L380,500 L380,200 L400,220 L450,200 L420,100 L350,70 C330,50 170,50 150,70 Z"
+                    fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" />
+            </svg>
+
+            <div id="frontLayer"></div>
+            <div id="backLayer" class="hidden">
+                <div class="back-static-container">
+                    <div id="bName"></div>
+                    <div id="bNum"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'front';
+        let pattern = 'parcali';
+        let activeTextElement = null;
+
+        function switchView() {
+            currentView = currentView === 'front' ? 'back' : 'front';
+            document.getElementById('frontLayer').classList.toggle('hidden');
+            document.getElementById('backLayer').classList.toggle('hidden');
+            document.getElementById('vLabel').innerText = currentView === 'front' ? 'ÖN YÜZ' : 'ARKA YÜZ';
+            document.getElementById('viewBtn').innerText = `🔄 GÖRÜNÜM: ${currentView.toUpperCase()} YÜZ`;
+            updateBackStatic();
+        }
+
+        function setPattern(p) { pattern = p; updateBase(); }
+
+        function updateBase() {
+            const c1 = document.getElementById('c1').value;
+            const c2 = document.getElementById('c2').value;
+            const bg = document.getElementById('svgBG');
+            const split = document.getElementById('svgSplit');
+            const patt = document.getElementById('svgPattern');
+
+            bg.setAttribute('fill', c1);
+            split.classList.add('hidden');
+            patt.classList.add('hidden');
+
+            if (pattern === 'parcali') {
+                split.classList.remove('hidden');
+                split.setAttribute('fill', c2);
+            } else if (pattern === 'cizgili') {
+                patt.classList.remove('hidden');
+                document.getElementById('cz1').setAttribute('fill', c1);
+                document.getElementById('cz2').setAttribute('fill', c2);
+                patt.setAttribute('fill', 'url(#pCizgili)');
+            } else if (pattern === 'damali') {
+                patt.classList.remove('hidden');
+                ['d1', 'd4'].forEach(id => document.getElementById(id).setAttribute('fill', c1));
+                ['d2', 'd3'].forEach(id => document.getElementById(id).setAttribute('fill', c2));
+                patt.setAttribute('fill', 'url(#pDamali)');
+            }
+            updateBackStatic();
+        }
+
+        function addNewText() {
+            const val = document.getElementById('tIn').value;
+            if (!val) return;
+            const el = document.createElement('div');
+            el.className = 'movable text-item';
+            el.innerText = val.toUpperCase();
+            el.style.left = '200px'; el.style.top = '250px';
+            applyTextStyles(el);
+
+            const resizer = document.createElement('div');
+            resizer.className = 'resizer';
+            el.appendChild(resizer);
+
+            makeMovable(el);
+            document.getElementById(currentView + 'Layer').appendChild(el);
+            activeTextElement = el;
+        }
+
+        function updateTextProps() {
+            if (activeTextElement) applyTextStyles(activeTextElement);
+            updateBackStatic();
+        }
+
+        function applyTextStyles(el) {
+            el.style.fontFamily = document.getElementById('tFont').value;
+            el.style.color = document.getElementById('tColor').value;
+            el.style.fontSize = document.getElementById('tSize').value + 'px';
+        }
+
+        function updateBackStatic() {
+            const val = document.getElementById('tIn').value.toUpperCase();
+            const numVal = document.getElementById('tNumIn').value;
+            const bName = document.getElementById('bName');
+            const bNum = document.getElementById('bNum');
+
+            bName.innerText = val || "";
+            bNum.innerText = numVal || "";
+
+            [bName, bNum].forEach(el => {
+                el.style.color = document.getElementById('tColor').value;
+                el.style.fontFamily = document.getElementById('tFont').value;
+            });
+        }
+
+        function dropToCanvas(e) {
+            e.preventDefault();
+            const src = e.dataTransfer.getData("text");
+            if (!src) return;
+            const rect = document.getElementById('dropCanvas').getBoundingClientRect();
+
+            const div = document.createElement('div');
+            div.className = 'movable';
+            div.style.left = (e.clientX - rect.left - 40) + 'px';
+            div.style.top = (e.clientY - rect.top - 40) + 'px';
+            div.style.width = '80px'; div.style.height = '80px';
+            div.innerHTML = `<img src="${src}"><div class="resizer"></div>`;
+
+            makeMovable(div);
+            document.getElementById(currentView + 'Layer').appendChild(div);
+        }
+
+        function makeMovable(el) {
+            let isMoving = false, isResizing = false;
+
+            // SİLME ÖZELLİĞİ: Sağ Tık
+            el.oncontextmenu = (e) => {
+                e.preventDefault();
+                el.remove();
+            };
+
+            el.addEventListener('mousedown', (e) => {
+                if (el.classList.contains('text-item')) activeTextElement = el;
+                if (e.target.className === 'resizer') isResizing = true;
+                else isMoving = true;
+
+                let sX = e.clientX, sY = e.clientY;
+                let sW = el.offsetWidth, sH = el.offsetHeight;
+                let sFS = parseInt(window.getComputedStyle(el).fontSize);
+
+                const move = (ee) => {
+                    if (isMoving) {
+                        el.style.left = (el.offsetLeft + (ee.clientX - sX)) + 'px';
+                        el.style.top = (el.offsetTop + (ee.clientY - sY)) + 'px';
+                    } else if (isResizing) {
+                        let diffX = ee.clientX - sX;
+                        if (el.querySelector('img')) {
+                            el.style.width = (sW + diffX) + 'px';
+                            el.style.height = (sH + diffX) + 'px'; // Oranlı büyütme
+                        } else {
+                            let newSize = sFS + diffX / 2;
+                            el.style.fontSize = newSize + 'px';
+                            document.getElementById('tSize').value = newSize;
+                        }
+                    }
+                    sX = ee.clientX; sY = ee.clientY;
+                };
+                const stop = () => { isMoving = false; isResizing = false; document.removeEventListener('mousemove', move); };
+                document.addEventListener('mousemove', move);
+                document.addEventListener('mouseup', stop);
+            });
+        }
+
+        window.onload = () => {
+            const box = document.getElementById('stickerBox');
+            for (let i = 1; i <= 14; i++) {
+                const img = document.createElement('img');
+                img.src = `/img/etiketler/gs_amblem${i}.png`;
+                img.draggable = true;
+                img.ondragstart = (e) => e.dataTransfer.setData("text", e.target.src);
+                box.appendChild(img);
+            }
+            updateBase();
+        };
+    </script>
+</body>
+
+</html>
